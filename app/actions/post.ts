@@ -3,6 +3,7 @@
 import { fetchWithAuth } from "../lib/api-client";
 import { CreatePostSchema } from "../lib/definitions";
 import { containsScripts } from "../lib/helpers";
+import * as z from 'zod';
 
 export async function createPostAction(prevState: any, formData: FormData) {
   const imageFile = formData.get("file") as File;
@@ -44,7 +45,8 @@ export async function createPostAction(prevState: any, formData: FormData) {
 
   if (!validatedFields.success) {
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
+      status: false,
+      errors: z.flattenError(validatedFields.error),
       inputs: Object.fromEntries(formData.entries()),
     };
   }

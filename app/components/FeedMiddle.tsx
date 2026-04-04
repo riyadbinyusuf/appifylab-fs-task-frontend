@@ -1,5 +1,5 @@
 import React from "react";
-import CreatePost from "./CreatePost";
+// import CreatePost from "./CreatePost";
 import FeedTimeline from "./FeedTimeline";
 
 export default function FeedMiddle() {
@@ -264,7 +264,7 @@ export default function FeedMiddle() {
             </div>
             {/* <!--For Mobile End--> */}
             {/* Create Post */}
-            <CreatePost />
+            {/* <CreatePost /> */}
             <FeedTimeline />
           </div>
         </div>

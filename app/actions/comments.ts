@@ -8,6 +8,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
   const imageFile = formData.get("file") as File;
   const text = formData.get("text") as string;
   const postId = formData.get("postId") as string;
+  const parentId = formData.get('parentId') as string;
 
   if (containsScripts(text)) {
     return {
@@ -37,6 +38,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
   const validatedFields = CreateCommentSchema.safeParse({
     commentText: text,
     imageUrl,
+    parentId: parentId ? Number(parentId) : undefined,
   });
 
   if (!validatedFields.success) {

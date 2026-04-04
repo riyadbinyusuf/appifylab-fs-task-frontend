@@ -1,5 +1,5 @@
 import { useState, useEffect, useEffectEvent } from 'react';
-// import Cookies from 'js-cookie'; // Requires npm install js-cookie
+import { getUserInfo } from '../actions/auth';// Requires npm install js-cookie
 
 interface UserData {
     _id: string;
@@ -11,7 +11,7 @@ interface UserData {
 export default function UserInfo() {
   const [user, setUser] = useState<UserData | null>(null);
 
-  const getUserInfo = useEffectEvent(async () => {
+  const getUser = useEffectEvent(async () => {
     return await getUserInfo();
   });
 

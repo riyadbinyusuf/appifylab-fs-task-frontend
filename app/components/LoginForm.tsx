@@ -2,10 +2,12 @@
 
 import { loginAction } from "@/app/actions/auth";
 import { LoginFormState } from "@/app/lib/definitions";
-import React, { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 const initialState = {
-  error: undefined,
+  status: undefined,
+  message: undefined,
+  errors: undefined,
   inputs: {},
 };
 export default function LoginForm() {
@@ -16,7 +18,6 @@ export default function LoginForm() {
   const [fieldErrors, setFieldErrors] = useState<
     NonNullable<LoginFormState["message"]>
   >('');
-
   useEffect(() => {
     if (state?.message) {
       setFieldErrors(state.message);
@@ -79,7 +80,7 @@ export default function LoginForm() {
         </div>
       </div>
       <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12 mt-3">
-        {state?.message && <p className="text-danger fs-6">{state.message}</p>}
+        {!state?.status && fieldErrors && <p className="text-danger fs-6">{state.message}</p>}
       </div>
       <div className="row">
         <div className="col-lg-12 col-md-12 col-xl-12 col-sm-12">

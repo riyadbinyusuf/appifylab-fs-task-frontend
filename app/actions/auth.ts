@@ -8,7 +8,7 @@ import {
 } from "@/app/lib/definitions";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-// import * as z from 'zod'
+import * as z from 'zod'
 
 export async function signupAction(state: FormState, formData: FormData) {
   const validatedFields = SignupFormSchema.safeParse({
@@ -22,7 +22,8 @@ export async function signupAction(state: FormState, formData: FormData) {
 
   if (!validatedFields.success) {
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
+      status: false,
+      errors: z.flattenError(validatedFields.error),
       inputs: Object.fromEntries(formData.entries()),
     };
   }
@@ -41,7 +42,8 @@ export async function signupAction(state: FormState, formData: FormData) {
     redirect("/login");
   } else {
     return {
-      message: data.message || "Signup failed. Please try again.",
+      status: false,
+      message: data?.message || "Signup failed. Please try again.",
       inputs: Object.fromEntries(formData.entries()),
       errors: data.errors,
     };
@@ -55,9 +57,10 @@ export async function loginAction(state: LoginFormState, formData: FormData) {
     rememberMe: formData.get("rememberMe") === "on",
   });
 
+  
   if (!validatedFields.success) {
     return {
-      // errors: validatedFields.error.flatten().fieldErrors,
+      status: false,
       message: "Invalid credentials",
       inputs: Object.fromEntries(formData.entries()),
     };
@@ -71,11 +74,18 @@ export async function loginAction(state: LoginFormState, formData: FormData) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(validatedFields.data),
-      // credentials: 'include', // Include cookies
-    }
+    },
   );
 
   const res = await resPromise.json();
+
+  if (res.status === "error") {
+    return {
+      ...res,
+      status: false,
+      inputs: {},
+    };
+  }
 
   const cookieStore = await cookies();
 

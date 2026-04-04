@@ -1,6 +1,13 @@
 import React, { startTransition, useActionState, useEffect } from "react";
 import { createCommentAction } from "../actions/comments";
-import { mutate } from "swr";
+import Image from "next/image";
+import ImageFilePreview from "./ImageFilePreview";
+
+type CreateCommentProps = {
+  postId: number;
+  parentId?: number;
+  handleMutate: () => void;
+};
 
 type ActionState = {
   success?: boolean;
@@ -9,21 +16,21 @@ type ActionState = {
   inputs?: Record<string, string>;
 };
 
-type CreateCommentProps = {
-  postId: number;
-  handleMutate: () => void;
-}
-
-export default function CreateComment({ postId, handleMutate } : CreateCommentProps) {
-  const [state, action, isPending] = useActionState<ActionState, FormData>(
-    createCommentAction as any,
-    {},
-  );
+export default function CreateComment({
+  postId,
+  parentId,
+  handleMutate,
+}: CreateCommentProps) {
+  const [state, dispatchAction, isPending] = useActionState<
+    ActionState,
+    FormData
+  >(createCommentAction as any, {});
 
   const [fields, setFields] = React.useState<Record<string, any>>({
     text: "",
     imageUrl: "",
     postId: postId,
+    parentId: parentId,
   });
 
   const [file, setFile] = React.useState<File | null>(null);
@@ -42,21 +49,21 @@ export default function CreateComment({ postId, handleMutate } : CreateCommentPr
     setFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData();
+  async function formAction(formData: FormData) {
     formData.append("text", fields.text);
     formData.append("postId", postId.toString());
+    if (parentId) formData.append("parentId", parentId.toString());
     if (file) formData.append("file", file);
     startTransition(() => {
-      action(formData);
+      dispatchAction(formData);
     });
-  };
+  }
+
   return (
     <>
       <div className="_feed_inner_timeline_cooment_area">
         <div className="_feed_inner_comment_box">
-          <div className="_feed_inner_comment_box_form">
+          <form className="_feed_inner_comment_box_form" action={formAction}>
             <div className="_feed_inner_comment_box_content">
               <div className="_feed_inner_comment_box_content_image">
                 <img
@@ -79,12 +86,21 @@ export default function CreateComment({ postId, handleMutate } : CreateCommentPr
                   disabled={isPending}
                   className="form-control _comment_textarea"
                   placeholder="Write a comment"
-                  id="floatingTextarea2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+
+                      e.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                  id="floatingTextarea1"
                 />
+                <ImageFilePreview file={file} setFile={setFile} />
               </div>
+
             </div>
             <div className="_feed_inner_comment_box_icon">
-              <button className="_feed_inner_comment_box_icon_btn">
+              <label className="_feed_inner_comment_box_icon_btn">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -100,7 +116,7 @@ export default function CreateComment({ postId, handleMutate } : CreateCommentPr
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
+              </label>
               <label className="_feed_inner_comment_box_icon_btn">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -125,16 +141,9 @@ export default function CreateComment({ postId, handleMutate } : CreateCommentPr
                 />
               </label>
             </div>
-          </div>
+            <button type="submit" hidden />
+          </form>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={isPending}
-          type="button"
-          className="_right_info_btn_link _right_info_btn_link_active mt-3"
-        >
-          {isPending ? "Commenting..." : "Comment"}
-        </button>
       </div>
     </>
   );

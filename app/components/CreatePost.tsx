@@ -6,8 +6,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { createPostAction, uploadFile } from "../actions/post";
-import { mutate } from "swr";
+import { createPostAction } from "../actions/post";
+import { CreatePostType } from "../lib/definitions";
+import ImageFilePreview from "./ImageFilePreview";
 
 type ActionState = {
   success?: boolean;
@@ -16,12 +17,17 @@ type ActionState = {
   inputs?: Record<string, string>;
 };
 
-export default function CreatePost() {
+export default function CreatePost({
+  handleMutate,
+}: {
+  handleMutate: () => void;
+}) {
   const [state, action, isPending] = useActionState<ActionState, FormData>(
     createPostAction as any,
-    {}
+    {},
   );
-  const [fields, setFields] = useState<Record<string, string>>({
+
+  const [fields, setFields] = useState<CreatePostType>({
     text: "",
     visibility: "public",
   });
@@ -29,20 +35,12 @@ export default function CreatePost() {
 
   useEffect(() => {
     if (state.success) {
-      mutate(
-        (key) => {
-          return typeof key === "string" && key.startsWith("?limit=10");
-        },
-        {
-          revalidate: true,
-          populateCache: true,
-        }
-      );
+      handleMutate();
       setFile(null);
       setFields({
         text: "",
         visibility: "public",
-      })
+      });
     }
   }, [state]);
 
@@ -52,14 +50,23 @@ export default function CreatePost() {
     setFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append("text", fields.text);
+    formData.append("text", fields.text as string);
     formData.append("visibility", fields.visibility);
     if (file) formData.append("file", file);
     startTransition(() => {
       action(formData);
+    });
+  };
+
+  const handleFieldChange = (key: string, value: string) => {
+    setFields((prevState) => {
+      return {
+        ...prevState,
+        [key]: value,
+      };
     });
   };
 
@@ -76,31 +83,20 @@ export default function CreatePost() {
           </div>
           <div className="form-floating _feed_inner_text_area_box_form ">
             <textarea
-              onChange={(e) => setFields((prevState) => {
-                return {
-                  ...prevState,
-                  text: e.target.value,
-                };
-              })}
+              onChange={(e) =>
+                setFields((prevState) => {
+                  return {
+                    ...prevState,
+                    text: e.target.value,
+                  };
+                })
+              }
               disabled={isPending}
               className="form-control _textarea"
               placeholder="Leave a comment here"
               id="floatingTextarea"
             ></textarea>
-            {/* Preview Area (Logic enabled by Manual State) */}
-            {file && (
-              <div className="preview relative">
-                <button onClick={() => setFile(null)} className="">
-                  x
-                </button>
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt="Preview"
-                  width={100}
-                />
-                {/* <p>Selected: {file.name}</p> */}
-              </div>
-            )}
+            <ImageFilePreview file={file} setFile={setFile} />
             {fields.text === "" && (
               <label
                 className="_feed_textarea_label"
@@ -224,6 +220,34 @@ export default function CreatePost() {
                 </span>
                 Article
               </button>
+            </div>
+          </div>
+          <div className="">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="public"
+                id="visibilityPublic"
+                checked={fields.visibility === "public"}
+                onChange={() => handleFieldChange("visibility", "public")}
+              />
+              <label className="form-check-label" htmlFor="visibilityPublic">
+                Public
+              </label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="radio"
+                name="private"
+                id="visibilityPrivate"
+                checked={fields.visibility === "private"}
+                onChange={() => handleFieldChange("visibility", "private")}
+              />
+              <label className="form-check-label" htmlFor="visibilityPrivate">
+                Private
+              </label>
             </div>
           </div>
           <div className="_feed_inner_text_area_btn">
