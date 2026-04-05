@@ -1,14 +1,14 @@
 "use server";
 
 import { fetchWithAuth } from "../lib/api-client";
-import { CreateCommentSchema, CreatePostSchema } from "../lib/definitions";
+import { CreateCommentSchema } from "../lib/definitions";
 import { containsScripts } from "../lib/helpers";
 
 export async function createCommentAction(prevState: any, formData: FormData) {
   const imageFile = formData.get("file") as File;
   const text = formData.get("text") as string;
   const postId = formData.get("postId") as string;
-  const parentId = formData.get('parentId') as string;
+  const parentId = formData.get("parentId") as string;
 
   if (containsScripts(text)) {
     return {
@@ -23,8 +23,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
   if (imageFile) {
     try {
       const fileData = await uploadFile(imageFile);
-    if (fileData?.url) imageUrl = fileData.url;
-
+      if (fileData?.url) imageUrl = fileData.url;
     } catch (err) {
       return {
         errors: {
@@ -54,7 +53,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
       body: JSON.stringify(validatedFields.data),
     });
     const data = await res.json();
-    console.log({commentData: data})
+
     if (res.ok) {
       return {
         success: true,
@@ -95,10 +94,14 @@ export async function uploadFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetchWithAuth("/files/upload-single", {
-      method: "POST",
-      body: formData,
-    }, true);
+    const res = await fetchWithAuth(
+      "/files/upload-single",
+      {
+        method: "POST",
+        body: formData,
+      },
+      true,
+    );
 
     const data = await res.json();
     return data;

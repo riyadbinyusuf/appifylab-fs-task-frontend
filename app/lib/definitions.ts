@@ -37,6 +37,7 @@ export type FormErrorsType = {
     password?: string[];
     confirmPassword?: string[];
     accept?: string[];
+    rememberMe?: boolean;
   };
 };
 
@@ -54,9 +55,9 @@ export type FormState = {
 };
 
 export const LoginFormSchema = z.object({
-  email: z.email({ error: "Please enter a valid email." }).trim(),
+  email: z.string().min(1, "Required"),
   password: z.string().min(1, "Required"),
-  rememberMe: z.boolean().optional(),
+  rememberMe: z.boolean().optional().nullable(),
 });
 
 export type LoginFormState = {

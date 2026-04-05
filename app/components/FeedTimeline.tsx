@@ -11,49 +11,12 @@ import CreateComment from "./CreateComment";
 import { Modal } from "react-bootstrap";
 import ViewPreviousComments from "./ViewPreviousComments";
 import PostLike from "./PostLike";
-
-export interface PostMedia {
-  commentId: number | null;
-  createdAt: string;
-  id: number;
-  postId: number;
-  type: string;
-  url: string;
-}
-export interface Post {
-  id: number;
-  text: string;
-  media: PostMedia[];
-  videoUrl: any;
-  likesCount: number;
-  commentsCount: number;
-  isPublished: boolean;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-  user: User;
-  comments: any[];
-  visibility: string;
-  likes: any[];
-  totalLikes: number;
-  totalComments: number;
-}
-
-export interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
-interface FeedResponse {
-  posts: Post[];
-  cursor?: string;
-}
+import { FeedResponse, Post, PostComment } from "../lib/types/post-type";
+import CommentLike from "./CommentLike";
 
 const fetcher = async (url: string): Promise<FeedResponse> => {
   const response = await getFeedPosts(url);
-  // console.log({response})
+
   if (!response || !response.posts) {
     throw new Error("Failed to fetch posts");
   }
@@ -92,25 +55,81 @@ export default function FeedTimeline() {
       revalidateAll: true,
       keepPreviousData: true,
       persistSize: true,
+      revalidateOnFocus: true,
       // refreshInterval: 10000,
     },
   );
 
-  // console.log({ data, size, isValidating, error });
-
-  useEffect(() => {
-    if (inView && !isValidating && !finished && !error) {
-      setSize((prevSize) => prevSize + 1);
-    }
-  }, [inView, isValidating, finished, setSize, error]);
+  // useEffect(() => {
+  //   if (inView && !isValidating && !finished && !error) {
+  //     setSize((prevSize) => prevSize + 1);
+  //   }
+  // }, [inView, isValidating, finished, setSize, error]);
 
   const posts = data ? data.flatMap((page) => page.posts) : [];
+
+  const handleOptmisticLike = (
+    postId: number,
+    userId: number,
+    isLiked: boolean,
+  ) => {
+    mutate((prev) => {
+      if (!prev) return prev;
+
+      const updatedData = prev.map((page) => ({
+        ...page,
+        posts: page.posts.map((post) => {
+          if (post.id !== postId) return post;
+          return {
+            ...post,
+            likes: isLiked
+              ? post.likes.filter((l) => l.userId !== userId)
+              : [...post.likes, { userId }],
+          };
+        }),
+      }));
+
+      return updatedData;
+    }, false);
+  };
+
+  const handleOptmisticCommentLike = (
+    comment: PostComment,
+    userId: number,
+    isLiked: boolean,
+  ) => {
+    mutate((prev) => {
+      if (!prev) return prev;
+
+      const updatedData = prev.map((page) => ({
+        ...page,
+        posts: page.posts.map((post) => {
+          if (post.id !== comment.postId) return post;
+          return {
+            ...post,
+            comments: post.comments.map((cmt: PostComment) => {
+              if (comment.id !== cmt.id) return cmt;
+              return {
+                ...cmt,
+                likes: isLiked
+                  ? cmt.likes.filter((l) => l.userId !== userId)
+                  : [...cmt.likes, { userId }],
+                totalLikes: isLiked ? cmt.totalLikes - 1 : cmt.totalLikes + 1,
+              };
+            }),
+          };
+        }),
+      }));
+
+      return updatedData;
+    }, false);
+  };
 
   return (
     <>
       <CreatePost handleMutate={() => mutate()} />
 
-      {posts.map((post) => {
+      {posts.map((post: Post) => {
         return (
           <React.Fragment key={post.id}>
             {/* Newer */}
@@ -318,7 +337,7 @@ export default function FeedTimeline() {
                 </div>
                 <div className="_feed_inner_timeline_total_reacts_txt">
                   <p className="_feed_inner_timeline_total_reacts_para1">
-                    <span>12</span> Comment
+                    <span>{post.totalComments}</span> Comments
                   </p>
                   <p className="_feed_inner_timeline_total_reacts_para2">
                     <span>122</span> Share
@@ -326,7 +345,10 @@ export default function FeedTimeline() {
                 </div>
               </div>
               <div className="_feed_inner_timeline_reaction">
-                <PostLike post={post} handleMutate={() => mutate()} />
+                <PostLike
+                  post={post}
+                  handleOptmisticLike={handleOptmisticLike}
+                />
                 <button className="_feed_inner_timeline_reaction_comment _feed_reaction">
                   <span className="_feed_inner_timeline_reaction_link">
                     {" "}
@@ -383,110 +405,141 @@ export default function FeedTimeline() {
                 {post.comments?.length > 0 ? (
                   <>
                     {post.comments?.length > 1 && (
-                      <ViewPreviousComments post={post} />
+                      <ViewPreviousComments
+                        post={post}
+                        handleMutate={() => mutate()}
+                        handleOptmisticCommentLike={handleOptmisticCommentLike}
+                      />
                     )}
-                    <div className="_comment_main">
-                      <div className="_comment_image">
-                        <a href="profile.html" className="_comment_image_link">
-                          <img
-                            src="assets/images/txt_img.png"
-                            alt=""
-                            className="_comment_img1"
-                          />
-                        </a>
-                      </div>
-                      <div className="_comment_area">
-                        <div className="_comment_details">
-                          <div className="_comment_details_top">
-                            <div className="_comment_name">
-                              <a href="profile.html ">
-                                <h4 className="_comment_name_title">
-                                  {post.comments?.[0]?.user?.firstName +
-                                    " " +
-                                    post.comments?.[0]?.user?.lastName}
-                                </h4>
+                    {post.comments.slice(0, 1).map((comment: PostComment) => {
+                      return (
+                        <React.Fragment key={comment.id}>
+                          <div className="_comment_main">
+                            <div className="_comment_image">
+                              <a
+                                href="profile.html"
+                                className="_comment_image_link"
+                              >
+                                <img
+                                  src="assets/images/txt_img.png"
+                                  alt=""
+                                  className="_comment_img1"
+                                />
                               </a>
                             </div>
-                          </div>
-                          <div className="_comment_status">
-                            <p className="_comment_status_text">
-                              <span>{post.comments?.[0]?.commentText}</span>
-                            </p>
-                            {post.comments?.[0].media?.length > 0 ? (
-                              <Image
-                                src={post.comments?.[0].media?.[0].url}
-                                alt="Image"
-                                width={200}
-                                height={200}
-                                className="_time_img"
-                              />
-                            ) : null}
-                          </div>
-                          <div className="_total_reactions">
-                            <div className="_total_react">
-                              <span className="_reaction_like">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="feather feather-thumbs-up"
-                                >
-                                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                                </svg>
-                              </span>
-                              <span className="_reaction_heart">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="feather feather-heart"
-                                >
-                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                </svg>
-                              </span>
+                            <div className="_comment_area">
+                              <div
+                                className="_comment_details mt-3"
+                                style={{ minWidth: "100%" }}
+                              >
+                                <div className="_comment_details_top">
+                                  <div className="_comment_name">
+                                    <a href="profile.html ">
+                                      <h4 className="_comment_name_title">
+                                        {comment?.user?.firstName +
+                                          " " +
+                                          comment?.user?.lastName}
+                                      </h4>
+                                    </a>
+                                  </div>
+                                </div>
+                                <div className="_comment_status">
+                                  <p className="_comment_status_text">
+                                    <span>{comment?.commentText}</span>
+                                  </p>
+                                  {comment.media?.length > 0 ? (
+                                    <div
+                                      className=""
+                                      style={{ width: "200px" }}
+                                    >
+                                      <Image
+                                        src={post.comments?.[0].media?.[0].url}
+                                        alt="Image"
+                                        width={200}
+                                        height={200}
+                                        className="_time_img"
+                                      />
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="_total_reactions">
+                                  <div className="_total_react">
+                                    <span className="_reaction_like">
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="feather feather-thumbs-up"
+                                      >
+                                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                                      </svg>
+                                    </span>
+                                    <span className="_reaction_heart">
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="feather feather-heart"
+                                      >
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                      </svg>
+                                    </span>
+                                  </div>
+                                  <span className="_total">
+                                    {comment.totalLikes}
+                                  </span>
+                                </div>
+                                <div className="_comment_reply">
+                                  <div className="_comment_reply_num">
+                                    <ul className="_comment_reply_list">
+                                      <li>
+                                        <CommentLike
+                                          comment={comment}
+                                          handleOptmisticCommentLike={
+                                            handleOptmisticCommentLike
+                                          }
+                                        />
+                                        {/* <span>Like.</span> */}
+                                      </li>
+                                      <li>
+                                        <span>Reply.</span>
+                                      </li>
+                                      <li>
+                                        <span>Share</span>
+                                      </li>
+                                      <li>
+                                        <span className="_time_link">
+                                          .{timeAgo(comment.createdAt)}
+                                        </span>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="_feed_inner_comment_box">
+                                <CreateComment
+                                  postId={comment.postId}
+                                  parentId={comment.parentId}
+                                  handleMutate={() => mutate()}
+                                />
+                              </div>
                             </div>
-                            <span className="_total">198</span>
                           </div>
-                          <div className="_comment_reply">
-                            <div className="_comment_reply_num">
-                              <ul className="_comment_reply_list">
-                                <li>
-                                  <span>Like.</span>
-                                </li>
-                                <li>
-                                  <span>Reply.</span>
-                                </li>
-                                <li>
-                                  <span>Share</span>
-                                </li>
-                                <li>
-                                  <span className="_time_link">.21m</span>
-                                </li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="_feed_inner_comment_box">
-                          <CreateComment
-                            postId={post.id}
-                            parentId={post.comments?.[0]?.id}
-                            handleMutate={() => mutate()}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                        </React.Fragment>
+                      );
+                    })}
                   </>
                 ) : null}
               </div>

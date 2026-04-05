@@ -24,8 +24,8 @@ export async function signupAction(state: FormState, formData: FormData) {
   if (!validatedFields.success) {
     return {
       status: false,
-      errors: z.flattenError(validatedFields.error),
       inputs: Object.fromEntries(formData.entries()),
+      errors: z.flattenError(validatedFields.error),
     };
   }
 
@@ -55,8 +55,8 @@ export async function loginAction(state: LoginFormState, formData: FormData) {
   if (!validatedFields.success) {
     return {
       status: false,
-      message: "Invalid credentials",
       inputs: Object.fromEntries(formData.entries()),
+      errors: z.flattenError(validatedFields.error)
     };
   }
 

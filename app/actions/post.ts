@@ -4,6 +4,7 @@ import {
   createCommentService,
   createPostService,
   fetchPostService,
+  toggleCommentLikeService,
   togglePostLikeService,
   uploadSignleFileService,
 } from "../lib/clients/post-client";
@@ -62,7 +63,7 @@ export async function createPostAction(prevState: any, formData: FormData) {
   if (imageFile) {
     try {
       const fileData = await uploadFile(imageFile);
-      console.log({ fileData });
+
       if (fileData?.url) {
         imageUrl = fileData.url;
       }
@@ -89,8 +90,6 @@ export async function createPostAction(prevState: any, formData: FormData) {
       inputs: Object.fromEntries(formData.entries()),
     };
   }
-
-  console.log({ data: validatedFields.data, imageFile, imageUrl });
 
   try {
     const res = await createPostService(validatedFields.data);
@@ -162,7 +161,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
   try {
     const res = await createCommentService(postId, validatedFields.data);
     const data = await res.json();
-    console.log("comment", data?.data);
+
     if (res.ok) {
       return {
         success: true,
@@ -184,7 +183,7 @@ export async function createCommentAction(prevState: any, formData: FormData) {
 }
 
 export async function togglePostLikeAction(
-  prevState: PostLikeActionState,
+  _: PostLikeActionState,
   postId: string,
 ) {
   if (postId === undefined || postId === null) {
@@ -197,18 +196,36 @@ export async function togglePostLikeAction(
   try {
     const res = await togglePostLikeService(postId);
     const data = await res.json();
-    console.log('togglePostLikeAction:', data)
-    if (!res.ok) {
-      return {
-        status: false,
-        message: "Something went wrong",
-      };
-    }
-    // console.log(data)
     return {
       status: true,
       message: data?.message ?? "Success",
-      // liked: data?.data?.liked,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: "failed to toggle like",
+    };
+  }
+}
+
+
+export async function toggleCommentLikeAction(
+  _: PostLikeActionState,
+  commentId: string,
+) {
+  if (commentId === undefined || commentId === null) {
+    return {
+      status: false,
+      message: "Invalid post id",
+    };
+  }
+
+  try {
+    const res = await toggleCommentLikeService(commentId);
+    const data = await res.json();
+    return {
+      status: true,
+      message: data?.message ?? "Success",
     };
   } catch (error) {
     return {

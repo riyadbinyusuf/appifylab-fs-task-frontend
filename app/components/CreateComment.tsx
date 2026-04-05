@@ -1,11 +1,16 @@
-import React, { startTransition, useActionState, useEffect } from "react";
+import React, {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+} from "react";
 import { createCommentAction } from "../actions/comments";
 import Image from "next/image";
 import ImageFilePreview from "./ImageFilePreview";
 
 type CreateCommentProps = {
   postId: number;
-  parentId?: number;
+  parentId?: number | null;
   handleMutate: () => void;
 };
 
@@ -25,6 +30,9 @@ export default function CreateComment({
     ActionState,
     FormData
   >(createCommentAction as any, {});
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [fields, setFields] = React.useState<Record<string, any>>({
     text: "",
@@ -47,6 +55,7 @@ export default function CreateComment({
     const file = e.target.files?.[0];
     if (!file) return;
     setFile(file);
+    textareaRef.current?.focus();
   };
 
   async function formAction(formData: FormData) {
@@ -63,7 +72,17 @@ export default function CreateComment({
     <>
       <div className="_feed_inner_timeline_cooment_area">
         <div className="_feed_inner_comment_box">
-          <form className="_feed_inner_comment_box_form" action={formAction}>
+          <form
+            ref={formRef}
+            className="_feed_inner_comment_box_form"
+            action={formAction}
+            // onKeyDown={(e) => {
+            //   if (e.key === "Enter" && !e.shiftKey) {
+            //     e.preventDefault();
+            //     formRef.current?.requestSubmit();
+            //   }
+            // }}
+          >
             <div className="_feed_inner_comment_box_content">
               <div className="_feed_inner_comment_box_content_image">
                 <img
@@ -86,18 +105,19 @@ export default function CreateComment({
                   disabled={isPending}
                   className="form-control _comment_textarea"
                   placeholder="Write a comment"
+                  ref={textareaRef}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
 
-                      e.currentTarget.form?.requestSubmit();
+                      // e.currentTarget.form?.requestSubmit();
+                      formRef.current?.requestSubmit();
                     }
                   }}
                   id="floatingTextarea1"
                 />
                 <ImageFilePreview file={file} setFile={setFile} />
               </div>
-
             </div>
             <div className="_feed_inner_comment_box_icon">
               <label className="_feed_inner_comment_box_icon_btn">

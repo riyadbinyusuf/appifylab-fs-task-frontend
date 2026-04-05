@@ -48,7 +48,7 @@ export const togglePostLikeService = (postId: string) => {
 };
 
 export const toggleCommentLikeService = (commentId: string) => {
-  const path = `/posts/${commentId}/like`;
+  const path = `/comments/${commentId}/like`;
   return fetchWithAuth(path, {
     method: "POST",
   });

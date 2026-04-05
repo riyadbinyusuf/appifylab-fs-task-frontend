@@ -20,6 +20,7 @@ export default function SignUpForm() {
   const [fieldErrors, setFieldErrors] = useState<
     NonNullable<FormErrorsType["fieldErrors"]>
   >(state?.errors?.fieldErrors || {});
+  
   useEffect(() => {
     if (state?.errors?.fieldErrors) {
       setFieldErrors(state.errors?.fieldErrors);
