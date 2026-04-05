@@ -8,7 +8,8 @@ import {
 } from "@/app/lib/definitions";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import * as z from 'zod'
+import * as z from "zod";
+import { loginService, signupService } from "../lib/clients/auth-client";
 
 export async function signupAction(state: FormState, formData: FormData) {
   const validatedFields = SignupFormSchema.safeParse({
@@ -29,13 +30,7 @@ export async function signupAction(state: FormState, formData: FormData) {
   }
 
   // Call the provider or db to create a user...
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(validatedFields.data),
-  });
+  const res = await signupService(validatedFields.data);
   const data = await res.json();
 
   if (res.ok) {
@@ -57,7 +52,6 @@ export async function loginAction(state: LoginFormState, formData: FormData) {
     rememberMe: formData.get("rememberMe") === "on",
   });
 
-  
   if (!validatedFields.success) {
     return {
       status: false,
@@ -66,16 +60,7 @@ export async function loginAction(state: LoginFormState, formData: FormData) {
     };
   }
 
-  const resPromise = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(validatedFields.data),
-    },
-  );
+  const resPromise = await loginService(validatedFields.data);
 
   const res = await resPromise.json();
 
