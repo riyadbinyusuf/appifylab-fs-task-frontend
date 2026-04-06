@@ -73,14 +73,8 @@ export default function FeedTimeline() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        console.log({
-          isIntersecting: entries[0].isIntersecting,
-          isLoadingMore: !isLoadingMore,
-          isReachingEnd: !isReachingEnd,
-        });
         if (entries[0].isIntersecting && !isLoadingMore && !isReachingEnd) {
           loadMore();
-          console.log("loadmore in entries");
         }
       },
       {
