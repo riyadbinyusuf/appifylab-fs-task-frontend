@@ -3,7 +3,7 @@ This is an Appifylab Fullstack task's Frontend repo. Built with Next JS, SWR, Re
 Installation:
 
 1. Install dependencies: `npm install`
-2. Duplicate env.example with renaming .evn.local and update the base api url
+2. Duplicate env.example, rename it to .env.local, and update the base API URL
 3. Start the server: `npm run dev`
 
 Features:
