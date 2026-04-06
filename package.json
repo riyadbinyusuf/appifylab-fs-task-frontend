@@ -1,5 +1,5 @@
 {
-  "name": "fullstack-task",
+  "name": "fullstack-task-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,6 @@
     "react": "19.2.4",
     "react-bootstrap": "^2.10.10",
     "react-dom": "19.2.4",
-    "react-intersection-observer": "^10.0.3",
     "swr": "^2.4.1",
     "zod": "^4.3.6"
   },

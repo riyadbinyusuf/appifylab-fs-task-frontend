@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getFeedPosts } from "../actions/post";
-import { useInView } from "react-intersection-observer";
 import useSWRInfinite from "swr/infinite";
 import { timeAgo } from "../lib/helpers";
 import Image from "next/image";
 import CreatePost from "./CreatePost";
 import CreateComment from "./CreateComment";
-import { Modal } from "react-bootstrap";
 import ViewPreviousComments from "./ViewPreviousComments";
 import PostLike from "./PostLike";
 import { FeedResponse, Post, PostComment } from "../lib/types/post-type";
@@ -25,15 +23,11 @@ const fetcher = async (url: string): Promise<FeedResponse> => {
 };
 
 export default function FeedTimeline() {
-  const { ref, inView } = useInView();
-  const [finished, setFinished] = useState(false);
-
   const getKey = (
     pageIndex: number,
     previousPageData: FeedResponse | null,
   ): string | null => {
     if (previousPageData && !previousPageData.cursor) {
-      setFinished(true);
       return null;
     }
 
@@ -56,17 +50,49 @@ export default function FeedTimeline() {
       keepPreviousData: true,
       persistSize: true,
       revalidateOnFocus: true,
-      // refreshInterval: 10000,
     },
   );
 
-  // useEffect(() => {
-  //   if (inView && !isValidating && !finished && !error) {
-  //     setSize((prevSize) => prevSize + 1);
-  //   }
-  // }, [inView, isValidating, finished, setSize, error]);
-
   const posts = data ? data.flatMap((page) => page.posts) : [];
+  const isLoadingMore =
+    isValidating || (size > 0 && data && typeof data[size - 1] === "undefined");
+  const isEmpty = data?.[0]?.posts.length === 0;
+  const lastPage = data?.[data.length - 1];
+  const isReachingEnd = isEmpty || !lastPage?.cursor;
+
+  const triggerPointRef = useRef<HTMLDivElement>(null);
+
+  const loadMore = () => {
+    setSize(size + 1);
+  };
+
+  useEffect(() => {
+    const triggerPoint = triggerPointRef.current;
+    if (!triggerPoint) return;
+    const scrollContainer = document.querySelector("._layout_middle_wrap");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        console.log({
+          isIntersecting: entries[0].isIntersecting,
+          isLoadingMore: !isLoadingMore,
+          isReachingEnd: !isReachingEnd,
+        });
+        if (entries[0].isIntersecting && !isLoadingMore && !isReachingEnd) {
+          loadMore();
+          console.log("loadmore in entries");
+        }
+      },
+      {
+        root: scrollContainer,
+        rootMargin: "0px 0px 300px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(triggerPoint);
+    return () => observer.disconnect();
+  }, [isLoadingMore, isReachingEnd, loadMore]);
 
   const handleOptmisticLike = (
     postId: number,
@@ -548,13 +574,13 @@ export default function FeedTimeline() {
         );
       })}
 
-      {isValidating && <div className="_padd_24 _text_center">Loading...</div>}
+      <div ref={triggerPointRef} style={{ height: 10 }} />
 
-      {!finished && !isValidating && (
-        <div ref={ref} style={{ height: "20px" }} />
+      {(isValidating || isLoadingMore) && (
+        <div className="_padd_24 _text_center">Loading...</div>
       )}
 
-      {finished && (
+      {isReachingEnd && !isLoadingMore && (
         <div className="_padd_24 _text_center">No more posts to load</div>
       )}
 
