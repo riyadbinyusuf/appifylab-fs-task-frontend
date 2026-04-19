@@ -1,4 +1,4 @@
-This is an Appifylab Fullstack task's Frontend repo. Built with Next JS, SWR, React Boostrap, Zod.
+This is an eScocial Frontend repo. Built with Next JS, SWR, React Boostrap, Zod.
 
 Installation:
 
